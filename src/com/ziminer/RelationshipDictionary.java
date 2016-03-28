@@ -78,6 +78,14 @@ public class RelationshipDictionary {
         curNode.femaleName = femaleName;
     }
 
+    public String GetBasicRelationship(Type type, boolean male) {
+        Node target = root.childNodes.get(type);
+        if (target == null) {
+            return "";
+        }
+        return male ? target.maleName : target.femaleName;
+    }
+
     public String GetRelationship(Vector<Type> path, boolean male) {
         if (path == null) {
             return "";

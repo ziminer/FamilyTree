@@ -6,56 +6,13 @@ import com.ziminer.RelationshipDictionary.Type;
 import java.util.*;
 
 public class Person {
+    private class PersonInfo {
+        final Person person;
+        final Vector<Type> path;
 
-    private class RelationshipPath {
-        private final Stack<Type> type;
-        private final Stack<Person> person;
-
-        RelationshipPath() {
-            type = new Stack<>();
-            person = new Stack<>();
-        }
-
-        void push(Person person, Type type) {
-            this.type.push(type);
-            this.person.push(person);
-        }
-
-        void pop() {
-            this.type.pop();
-            this.person.pop();
-        }
-
-        Type peekType() {
-            return this.type.empty() ? Type.NONE : this.type.peek();
-        }
-
-        Person peekPerson() {
-            return this.person.empty() ? null : this.person.peek();
-        }
-
-        Stack<Type> getPath() {
-            return type;
-        }
-
-        @Override
-        public String toString() {
-            return String.format("%s\n%s", type, person);
-        }
-    }
-
-    private class RelativeInfo {
-        final String title;
-        final Vector<Type> path; // Path from the source person to the relative
-
-        RelativeInfo(String title, Vector<Type> path) {
-            this.title = title;
-            this.path = new Vector<>(path);
-        }
-
-        @Override
-        public String toString() {
-            return String.format("%s : %s", title, path);
+        PersonInfo(Person person, Vector<Type> path) {
+            this.person = person;
+            this.path = path;
         }
     }
 
@@ -131,58 +88,58 @@ public class Person {
             }
         }
 
+        private void addRelative(PersonInfo curPerson, Person relative, Type type, Set<Person> discovered, Queue<PersonInfo> peopleToCheck) {
+            discovered.add(relative);
+            PersonInfo relativeInfo = new PersonInfo(relative, new Vector<>(curPerson.path));
+            relativeInfo.path.add(type);
+            peopleToCheck.add(relativeInfo);
+        }
 
-        void getRelatives(Map<Person, RelativeInfo> relatives, RelationshipPath path) {
-            RelativeInfo existingInfo = relatives.get(me);
-            String title = RelationshipDictionary.getBasic().GetRelationship(path.getPath(), IsMale());
-            RelativeInfo newInfo = new RelativeInfo(title, path.getPath());
-            if (existingInfo == null) {
-                relatives.put(me, newInfo);
-            } else if (!existingInfo.title.equals(newInfo.title)) {
-                // Shouldn't get this.
-                System.out.println(String.format("Two paths resulting in different titles:\n%s\n%s", existingInfo, newInfo));
-                return;
-            } else {
-                return;
-            }
-
-            Type lastRelationship = path.peekType();
-            // No point re-visiting mother/father from a child.
-            if (lastRelationship != Type.CHILD) {
-                if (mother != null) {
-                    path.push(me, Type.PARENTAL);
-                    mother.family.getRelatives(relatives, path);
-                    path.pop();
+        void traverseFamily(FamilyParser parser) {
+            parser.setRoot(me);
+            Queue<PersonInfo> peopleToCheck = new LinkedList<>();
+            Set<Person> discovered = new HashSet<>();
+            peopleToCheck.add(new PersonInfo(me, new Vector<>()));
+            discovered.add(me);
+            while (!peopleToCheck.isEmpty()) {
+                PersonInfo curPerson = peopleToCheck.remove();
+                // Add appropriate relationship from root to me
+                // Only for non-immediate family, since immediate family
+                // gets handled in the general case (i.e. for everyone).
+                if (curPerson.person != me && curPerson.path.size() > 1) {
+                    parser.addRelationship(me, curPerson.person, curPerson.path);
                 }
-                if (father != null) {
-                    path.push(me, Type.PARENTAL);
-                    father.family.getRelatives(relatives, path);
-                    path.pop();
-                }
-            }
 
-            // Since we don't allow remarriage, mother and father are
-            // guaranteed to be married to each other or not at all.
-            // Therefore, we'll visit both of them from the child.
-            if (lastRelationship != Type.PARENTAL && lastRelationship != Type.MARITAL) {
-                if (spouse != null) {
-                    path.push(me, Type.MARITAL);
-                    spouse.family.getRelatives(relatives, path);
-                    path.pop();
-                }
-            }
-
-            // No point re-visiting the children - we'll visit them
-            // from the spousal point of view.
-            if (lastRelationship != Type.MARITAL) {
-                Person srcChild = lastRelationship == Type.PARENTAL ? path.peekPerson() : null;
-                path.push(me, Type.CHILD);
-                children.forEach(child -> {
-                    if (child != srcChild) {
-                        child.family.getRelatives(relatives, path);
+                Person curMother = curPerson.person.family.mother;
+                if (curMother != null) {
+                    if (!discovered.contains(curMother)) {
+                        addRelative(curPerson, curMother, Type.PARENTAL, discovered, peopleToCheck);
                     }
-                });
-                path.pop();
+                    parser.addDirectRelationship(curPerson.person, curMother, Type.PARENTAL);
+                }
+
+                Person curFather = curPerson.person.family.father;
+                if (curFather != null) {
+                    if (!discovered.contains(curFather)) {
+                        addRelative(curPerson, curFather, Type.PARENTAL, discovered, peopleToCheck);
+                    }
+                    parser.addDirectRelationship(curPerson.person, curFather, Type.PARENTAL);
+                }
+
+                Person curSpouse = curPerson.person.family.spouse;
+                if (curSpouse != null) {
+                    if (!discovered.contains(curSpouse)) {
+                        addRelative(curPerson, curSpouse, Type.MARITAL, discovered, peopleToCheck);
+                    }
+                    parser.addDirectRelationship(curPerson.person, curSpouse, Type.MARITAL);
+                }
+
+                for (Person child : curPerson.person.family.children) {
+                    if (!discovered.contains(child)) {
+                        addRelative(curPerson, child, Type.CHILD, discovered, peopleToCheck);
+                    }
+                    parser.addDirectRelationship(curPerson.person, child, Type.CHILD);
+                }
             }
         }
 
@@ -230,8 +187,6 @@ public class Person {
 
     public void AddSpouse(Person spouse) throws DoubleSpouseException, DoubleParentException {
         family.AddSpouse(spouse);
-
-
     }
 
     public void AddParent(Person parent) throws DoubleParentException {
@@ -259,19 +214,9 @@ public class Person {
         family.children.add(child);
     }
 
-    public Map<Person, String> GetRelatives() {
-        Map<Person, RelativeInfo> relatives = new HashMap<>();
-        family.getRelatives(relatives, new RelationshipPath());
-        relatives.remove(this);
-
-        Map<Person, String> relativeTitles = new HashMap<>();
-        for (Map.Entry<Person, RelativeInfo> relative : relatives.entrySet()) {
-            String title = relative.getValue().title.equals("") ? "Other" : relative.getValue().title;
-            relativeTitles.put(relative.getKey(), title);
-        }
-        return relativeTitles;
+    public void TraverseRelatives(FamilyParser parser) {
+        family.traverseFamily(parser);
     }
-
 
     // Equality based on name alone.
     @Override
