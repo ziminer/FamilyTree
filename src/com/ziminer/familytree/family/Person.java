@@ -1,16 +1,86 @@
-package com.ziminer;
+package com.ziminer.familytree.family;
 
-
-import com.ziminer.RelationshipDictionary.Type;
 
 import java.util.*;
 
 public class Person {
+    private final String name;
+    private final boolean male;
+    private final Family family;
+
+    Person(String name, boolean male) {
+        this.name = name;
+        this.male = male;
+        this.family = new Family(this);
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public boolean isMale() {
+        return male;
+    }
+
+    public void addSpouse(Person spouse) throws DoubleSpouseException, DoubleParentException {
+        family.AddSpouse(spouse);
+    }
+
+    public void addParent(Person parent) throws DoubleParentException {
+        addParentInternal(parent);
+        if (parent.family.spouse != null) {
+            addParentInternal(parent.family.spouse);
+        }
+    }
+
+    public void traverseRelatives(FamilyParser parser) {
+        family.traverseFamily(parser);
+    }
+
+    private void addParentInternal(Person parent) throws DoubleParentException {
+        if (parent.isMale()) {
+            if (this.family.father != null && !this.family.father.equals(parent)) {
+                throw new DoubleParentException();
+            }
+            this.family.father = parent;
+        } else if (this.family.mother != null && !this.family.mother.equals(parent)) {
+            throw new DoubleParentException();
+        } else {
+            this.family.mother = parent;
+        }
+        parent.addChild(this);
+    }
+
+    private void addChild(Person child) {
+        family.children.add(child);
+    }
+
+    // Equality based on name alone.
+    @Override
+    public boolean equals(Object obj) {
+        if (obj instanceof Person) {
+            return ((Person) obj).name.equals(name);
+        } else {
+            return name.equals(obj);
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return name.hashCode();
+    }
+
+    @Override
+    public String toString() {
+        return name;
+    }
+
+
     private class PersonInfo {
         final Person person;
-        final Vector<Type> path;
+        final Vector<RelationshipType> path;
 
-        PersonInfo(Person person, Vector<Type> path) {
+        PersonInfo(Person person, Vector<RelationshipType> path) {
             this.person = person;
             this.path = path;
         }
@@ -40,15 +110,15 @@ public class Person {
         }
 
         String GetSpouseName() {
-            return spouse == null ? "" : spouse.GetName();
+            return spouse == null ? "" : spouse.getName();
         }
 
         String GetMotherName() {
-            return mother == null ? "" : mother.GetName();
+            return mother == null ? "" : mother.getName();
         }
 
         String GetFatherName() {
-            return father == null ? "" : father.GetName();
+            return father == null ? "" : father.getName();
         }
 
         boolean HasChild(Person child) {
@@ -79,16 +149,16 @@ public class Person {
             spouse.family.children = this.children;
             // Update parent links.
             for (Person child : family.children) {
-                if (spouse.IsMale() ? child.family.father != spouse : child.family.mother != spouse) {
-                    child.AddParent(spouse);
+                if (spouse.isMale() ? child.family.father != spouse : child.family.mother != spouse) {
+                    child.addParent(spouse);
                 }
-                if (IsMale() ? child.family.father != me : child.family.mother != me) {
-                    child.AddParent(me);
+                if (isMale() ? child.family.father != me : child.family.mother != me) {
+                    child.addParent(me);
                 }
             }
         }
 
-        private void addRelative(PersonInfo curPerson, Person relative, Type type, Set<Person> discovered, Queue<PersonInfo> peopleToCheck) {
+        private void addRelative(PersonInfo curPerson, Person relative, RelationshipType type, Set<Person> discovered, Queue<PersonInfo> peopleToCheck) {
             discovered.add(relative);
             PersonInfo relativeInfo = new PersonInfo(relative, new Vector<>(curPerson.path));
             relativeInfo.path.add(type);
@@ -107,134 +177,64 @@ public class Person {
                 // Only for non-immediate family, since immediate family
                 // gets handled in the general case (i.e. for everyone).
                 if (curPerson.person != me && curPerson.path.size() > 1) {
-                    parser.addRelationship(me, curPerson.person, curPerson.path);
+                    parser.addDistantRelationship(curPerson.person, curPerson.path);
                 }
 
                 Person curMother = curPerson.person.family.mother;
                 if (curMother != null) {
                     if (!discovered.contains(curMother)) {
-                        addRelative(curPerson, curMother, Type.PARENTAL, discovered, peopleToCheck);
+                        addRelative(curPerson, curMother, RelationshipType.PARENTAL, discovered, peopleToCheck);
                     }
-                    parser.addDirectRelationship(curPerson.person, curMother, Type.PARENTAL);
+                    parser.addDirectRelationship(curPerson.person, curMother, RelationshipType.PARENTAL);
                 }
 
                 Person curFather = curPerson.person.family.father;
                 if (curFather != null) {
                     if (!discovered.contains(curFather)) {
-                        addRelative(curPerson, curFather, Type.PARENTAL, discovered, peopleToCheck);
+                        addRelative(curPerson, curFather, RelationshipType.PARENTAL, discovered, peopleToCheck);
                     }
-                    parser.addDirectRelationship(curPerson.person, curFather, Type.PARENTAL);
+                    parser.addDirectRelationship(curPerson.person, curFather, RelationshipType.PARENTAL);
                 }
 
                 Person curSpouse = curPerson.person.family.spouse;
                 if (curSpouse != null) {
                     if (!discovered.contains(curSpouse)) {
-                        addRelative(curPerson, curSpouse, Type.MARITAL, discovered, peopleToCheck);
+                        addRelative(curPerson, curSpouse, RelationshipType.MARITAL, discovered, peopleToCheck);
                     }
-                    parser.addDirectRelationship(curPerson.person, curSpouse, Type.MARITAL);
+                    parser.addDirectRelationship(curPerson.person, curSpouse, RelationshipType.MARITAL);
                 }
 
                 for (Person child : curPerson.person.family.children) {
                     if (!discovered.contains(child)) {
-                        addRelative(curPerson, child, Type.CHILD, discovered, peopleToCheck);
+                        addRelative(curPerson, child, RelationshipType.CHILD, discovered, peopleToCheck);
                     }
-                    parser.addDirectRelationship(curPerson.person, child, Type.CHILD);
+                    parser.addDirectRelationship(curPerson.person, child, RelationshipType.CHILD);
                 }
             }
         }
 
     }
 
-    private final String name;
-    private final boolean male;
-    private final Family family;
-
-    Person(String name, boolean male) {
-        this.name = name;
-        this.male = male;
-        this.family = new Family(this);
-    }
-
     // START - For testing basic functionality
-    String GetName() {
-        return name;
-    }
-
-    String GetSpouseName() {
+    String getSpouseName() {
         return family.GetSpouseName();
     }
 
-    String GetMotherName() {
+    String getMotherName() {
         return family.GetMotherName();
     }
 
-    String GetFatherName() {
+    String getFatherName() {
         return family.GetFatherName();
     }
 
-    boolean HasChild(Person child) {
+    boolean hasChild(Person child) {
         return family.HasChild(child);
     }
 
-    int NumChildren() {
+    int numChildren() {
         return family.NumChildren();
     }
     // END - For testing basic functionality
 
-    boolean IsMale() {
-        return male;
-    }
-
-    public void AddSpouse(Person spouse) throws DoubleSpouseException, DoubleParentException {
-        family.AddSpouse(spouse);
-    }
-
-    public void AddParent(Person parent) throws DoubleParentException {
-        addParentInternal(parent);
-        if (parent.family.spouse != null) {
-            addParentInternal(parent.family.spouse);
-        }
-    }
-
-    private void addParentInternal(Person parent) throws DoubleParentException {
-        if (parent.IsMale()) {
-            if (this.family.father != null && !this.family.father.equals(parent)) {
-                throw new DoubleParentException();
-            }
-            this.family.father = parent;
-        } else if (this.family.mother != null && !this.family.mother.equals(parent)) {
-            throw new DoubleParentException();
-        } else {
-            this.family.mother = parent;
-        }
-        parent.addChild(this);
-    }
-
-    private void addChild(Person child) {
-        family.children.add(child);
-    }
-
-    public void TraverseRelatives(FamilyParser parser) {
-        family.traverseFamily(parser);
-    }
-
-    // Equality based on name alone.
-    @Override
-    public boolean equals(Object obj) {
-        if (obj instanceof Person) {
-            return ((Person) obj).name.equals(name);
-        } else {
-            return name.equals(obj);
-        }
-    }
-
-    @Override
-    public int hashCode() {
-        return name.hashCode();
-    }
-
-    @Override
-    public String toString() {
-        return name;
-    }
 }

@@ -1,0 +1,37 @@
+node {
+  text-alignment: under;
+}
+
+node.root {
+  size: 25px, 25px;
+}
+
+node.male {
+  fill-color: #357EC7;
+}
+
+node.female {
+  fill-color: #E4287C;
+}
+
+edge.marital {
+  arrow-shape: none;
+  fill-color: #8C001A;
+}
+
+edge.child {
+  fill-color: #347235;
+}
+
+edge.parental {
+  fill-color: #504A4B;
+}
+
+edge.distant {
+  arrow-shape: none;
+  shape: cubic-curve;
+  fill-mode: none;
+  size: 0px;
+  stroke-mode:
+  dashes;
+}
