@@ -5,6 +5,10 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Vector;
 
+/**
+ * The RelationshipDictionary maps relationship paths in a tree
+ * to their associated gender-specific titles.
+ */
 public class RelationshipDictionary {
 
     // A basic dictionary with the most common types of relationships.
@@ -29,6 +33,10 @@ public class RelationshipDictionary {
         return basic;
     }
 
+    /**
+     * Internally a trie/suffix tree structure, where valid relationship nodes
+     * have a maleName and femaleName.
+     */
     private class Node {
         String maleName;
         String femaleName;

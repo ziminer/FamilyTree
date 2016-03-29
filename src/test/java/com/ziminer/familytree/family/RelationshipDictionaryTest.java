@@ -8,9 +8,7 @@ import java.util.Vector;
 
 import static org.junit.Assert.assertEquals;
 
-/**
- * Created by ziminer on 2016-03-25.
- */
+
 public class RelationshipDictionaryTest {
     private RelationshipDictionary dict;
 

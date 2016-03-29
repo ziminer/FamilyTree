@@ -14,21 +14,21 @@ public class PersonTest {
     }
 
     @Test
-    public void testCreatePerson() {
-        Person teddy = factory.createPerson("Teddy", true);
+    public void testCreatePerson() throws ExistingOppositeGenderException {
+        Person teddy = factory.createMale("Teddy");
         assertEquals(teddy.getName(), "Teddy");
     }
 
     @Test
-    public void testSpouse() throws DoubleSpouseException, DoubleParentException {
-        Person me = factory.createPerson("Me", true);
-        Person spouse = factory.createPerson("Spouse", true);
+    public void testSpouse() throws DoubleSpouseException, DoubleParentException, ExistingOppositeGenderException {
+        PersonImpl me = (PersonImpl) factory.createMale("Me");
+        PersonImpl spouse = (PersonImpl) factory.createFemale("Spouse");
         me.addSpouse(spouse);
         assertEquals(me.getSpouseName(), spouse.getName());
         assertEquals(spouse.getSpouseName(), me.getName());
 
         // Now try to add another spouse and make sure that fails.
-        Person fakeSpouse = factory.createPerson("Fake Spouse", true);
+        PersonImpl fakeSpouse = (PersonImpl) factory.createFemale("Fake Spouse");
         try {
             me.addSpouse(fakeSpouse);
             fail(); // addSpouse should throw an exception.
@@ -38,10 +38,10 @@ public class PersonTest {
     }
 
     @Test
-    public void testParent() throws DoubleParentException, DoubleSpouseException {
-        Person me = factory.createPerson("Me", true);
-        Person dad = factory.createPerson("Dad", true);
-        Person mom = factory.createPerson("Mom", false);
+    public void testParent() throws DoubleParentException, DoubleSpouseException, ExistingOppositeGenderException {
+        PersonImpl me = (PersonImpl) factory.createMale("Me");
+        PersonImpl dad = (PersonImpl) factory.createMale("Dad");
+        PersonImpl mom = (PersonImpl) factory.createFemale("Mom");
         me.addParent(dad);
         dad.addSpouse(mom);
         assertEquals(me.getFatherName(), dad.getName());
@@ -52,8 +52,8 @@ public class PersonTest {
         assertEquals(dad.numChildren(), 1);
 
         // Now try to add another mom and dad; make sure it fails.
-        Person fakeDad = factory.createPerson("Fake Dad", true);
-        Person fakeMom = factory.createPerson("Fake Mom", true);
+        PersonImpl fakeDad = (PersonImpl) factory.createMale("Fake Dad");
+        PersonImpl fakeMom = (PersonImpl) factory.createFemale("Fake Mom");
         try {
             me.addParent(fakeDad);
             fail();

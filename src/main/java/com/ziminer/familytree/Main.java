@@ -3,35 +3,34 @@ package com.ziminer.familytree;
 import com.ziminer.familytree.family.*;
 import com.ziminer.familytree.visualize.FamilyVisualizer;
 
-import java.util.ArrayList;
-
 public class Main {
 
-    public static void main(String[] args) throws DoubleParentException, DoubleSpouseException {
+    public static void main(String[] args) throws DoubleParentException, DoubleSpouseException, ExistingOppositeGenderException {
         PersonFactory factory = new PersonFactory();
-        ArrayList<Person> people = new ArrayList<>();
-        people.add(factory.createPerson("Me", true));
-        people.add(factory.createPerson("Spouse", false));
-        people.add(factory.createPerson("Son", true));
-        people.add(factory.createPerson("Dad", true));
-        people.add(factory.createPerson("Mom", false));
-        people.add(factory.createPerson("Mother in Law", false));
-        people.add(factory.createPerson("Father in Law", true));
-        people.add(factory.createPerson("Grandfather", true));
-        people.add(factory.createPerson("Aunt", false));
-        people.add(factory.createPerson("Sister in Law", false));
+        Person me = factory.createMale("Me");
+        Person spouse = factory.createFemale("Spouse");
+        Person son = factory.createMale("Son");
+        Person dad = factory.createMale("Dad");
+        Person mom = factory.createFemale("Mom");
+        Person motherInLaw = factory.createFemale("Mother in Law");
+        Person fatherInLaw = factory.createMale("Father in Law");
+        Person grandfather = factory.createMale("Grandfather");
+        Person aunt = factory.createFemale("Aunt");
+        Person sisterInLaw = factory.createFemale("Sister in Law");
+        Person brother = factory.createMale("Brother");
 
-        people.get(0).addSpouse(people.get(1));
-        people.get(2).addParent(people.get(0));
-        people.get(0).addParent(people.get(3));
-        people.get(3).addSpouse(people.get(4));
-        people.get(5).addSpouse(people.get(6));
-        people.get(1).addParent(people.get(5));
-        people.get(3).addParent(people.get(7));
-        people.get(8).addParent(people.get(7));
-        people.get(9).addParent(people.get(6));
+        me.addSpouse(spouse);
+        me.addParent(dad);
+        dad.addSpouse(mom);
+        son.addParent(me);
+        spouse.addParent(motherInLaw);
+        motherInLaw.addSpouse(fatherInLaw);
+        dad.addParent(grandfather);
+        aunt.addParent(grandfather);
+        sisterInLaw.addParent(motherInLaw);
+        brother.addParent(dad);
 
-        FamilyVisualizer vis = new FamilyVisualizer(people.get(0), RelationshipDictionary.getBasic());
+        FamilyVisualizer vis = new FamilyVisualizer(me, RelationshipDictionary.getBasic());
         vis.display();
     }
 }
