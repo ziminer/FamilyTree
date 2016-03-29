@@ -1,5 +1,6 @@
-package com.ziminer.familytree.family;
+package com.ziminer.familytree;
 
+import com.ziminer.familytree.family.*;
 import com.ziminer.familytree.visualize.FamilyVisualizer;
 
 import java.util.ArrayList;
@@ -32,7 +33,5 @@ public class Main {
 
         FamilyVisualizer vis = new FamilyVisualizer(people.get(0), RelationshipDictionary.getBasic());
         vis.display();
-
-        boolean test = true;
     }
 }

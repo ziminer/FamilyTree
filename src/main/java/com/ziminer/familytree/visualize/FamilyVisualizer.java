@@ -28,7 +28,8 @@ public class FamilyVisualizer implements FamilyParser {
         graph = new SingleGraph(String.format("%s's Family", root.getName()));
         graph.addAttribute("ui.quality");
         graph.addAttribute("ui.antialias");
-        graph.addAttribute("ui.stylesheet", String.format("url(file:///%s)", Paths.get("ui.css").toAbsolutePath()));
+        graph.addAttribute("ui.stylesheet", String.format("url(file:///%s)",
+                Paths.get("src", "main", "resources", "ui.css").toAbsolutePath()));
         root.traverseRelatives(this);
         graph.display();
     }

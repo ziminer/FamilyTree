@@ -12,7 +12,7 @@ import java.util.Vector;
 public interface FamilyParser {
     /**
      * This will be the person from whom the relationship graph starts.
-     *
+     * <p>
      * Called first during a family traversal.
      *
      * @param rootPerson
