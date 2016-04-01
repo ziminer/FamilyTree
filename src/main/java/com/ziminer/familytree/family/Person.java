@@ -37,6 +37,8 @@ public interface Person {
      */
     void addParent(Person parent) throws DoubleParentException;
 
+    java.util.List<Person> getRelatives(String title);
+
     /**
      * Traverse the person's family tree. Fire all the relationship-establishing calls on the FamilyParser.
      *

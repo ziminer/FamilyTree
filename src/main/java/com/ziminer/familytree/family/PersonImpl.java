@@ -1,7 +1,9 @@
 package com.ziminer.familytree.family;
 
 
+import javax.management.relation.Relation;
 import java.util.*;
+import java.util.concurrent.LinkedBlockingQueue;
 
 class PersonImpl implements Person {
     private final String name;
@@ -36,6 +38,15 @@ class PersonImpl implements Person {
                 addParentInternal(parentImpl.family.spouse);
             }
         }
+    }
+
+    public List<Person> getRelatives(String title) {
+        Vector<RelationshipType> path = RelationshipDictionary.getBasic().getPath(title);
+        if (path == null) {
+            return new ArrayList<>();
+        }
+
+        return family.getRelatives(new LinkedBlockingQueue<>(path), null);
     }
 
     public void traverseRelatives(FamilyParser parser) {
@@ -123,6 +134,35 @@ class PersonImpl implements Person {
             this.mother = null;
             this.father = null;
             this.children = new HashSet<>();
+        }
+
+        List<Person> getRelatives(Queue<RelationshipType> path, Person caller) {
+            if (path.isEmpty()) {
+                return Arrays.asList(me);
+            } else {
+                RelationshipType type = path.poll();
+                List<Person> retPerson = new ArrayList<Person>();
+
+                if (RelationshipType.PARENTAL.equals(type)) {
+                    if (father != null && father != caller) {
+                        retPerson.addAll(father.family.getRelatives(new LinkedBlockingQueue<>(path), me));
+                    }
+                    if (mother != null && mother != caller) {
+                        retPerson.addAll(mother.family.getRelatives(new LinkedBlockingQueue<>(path), me));
+                    }
+                } else if (RelationshipType.MARITAL.equals(type)) {
+                    if (spouse != null && spouse != caller) {
+                        retPerson.addAll(spouse.family.getRelatives(new LinkedBlockingQueue<>(path), me));
+                    }
+                } else {
+                    for (PersonImpl child : children) {
+                        if (child != caller) {
+                            retPerson.addAll(child.family.getRelatives(new LinkedBlockingQueue<>(path), me));
+                        }
+                    }
+                }
+                return retPerson;
+            }
         }
 
         void AddSpouse(PersonImpl spouse) throws DoubleSpouseException, DoubleParentException {

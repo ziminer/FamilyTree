@@ -25,6 +25,7 @@ public class RelationshipDictionary {
             basic.defineRelationship("Son", "Daughter", new Vector<>(Arrays.asList(RelationshipType.CHILD)));
             basic.defineRelationship("Grandson", "Granddaughter", new Vector<>(Arrays.asList(RelationshipType.CHILD, RelationshipType.CHILD)));
             basic.defineRelationship("Uncle", "Aunt", new Vector<>(Arrays.asList(RelationshipType.PARENTAL, RelationshipType.PARENTAL, RelationshipType.CHILD)));
+            basic.defineRelationship("Cousin", "Cousin", new Vector<>(Arrays.asList(RelationshipType.PARENTAL, RelationshipType.PARENTAL, RelationshipType.CHILD, RelationshipType.CHILD)));
             basic.defineRelationship("Brother in Law", "Sister in Law", new Vector<>(Arrays.asList(RelationshipType.MARITAL, RelationshipType.PARENTAL, RelationshipType.CHILD)));
             basic.defineRelationship("Brother in Law", "Sister in Law", new Vector<>(Arrays.asList(RelationshipType.PARENTAL, RelationshipType.CHILD, RelationshipType.MARITAL)));
             basic.defineRelationship("Brother", "Sister", new Vector<>(Arrays.asList(RelationshipType.PARENTAL, RelationshipType.CHILD)));
@@ -33,8 +34,10 @@ public class RelationshipDictionary {
         return basic;
     }
 
+    private Map<String, Vector<RelationshipType>> paths;
+
     /**
-     * Internally a trie/suffix tree structure, where valid relationship nodes
+     * Internally a trie structure, where valid relationship nodes
      * have a maleName and femaleName.
      */
     private class Node {
@@ -53,7 +56,13 @@ public class RelationshipDictionary {
 
     public RelationshipDictionary() {
         root = new Node();
+        paths = new HashMap<>();
 
+    }
+
+    public Vector<RelationshipType> getPath(String relationshipTitle) {
+        Vector<RelationshipType> path = paths.get(relationshipTitle);
+        return path == null ? null : new Vector<RelationshipType>(path);
     }
 
     /**
@@ -68,6 +77,10 @@ public class RelationshipDictionary {
     public void defineRelationship(String maleName, String femaleName, Vector<RelationshipType> path) {
         if (path.size() == 0) {
             return;
+        }
+        paths.put(maleName, new Vector<>(path));
+        if (!maleName.equals(femaleName)) {
+            paths.put(femaleName, new Vector<>(path));
         }
         Node curNode = root;
         for (RelationshipType type : path) {

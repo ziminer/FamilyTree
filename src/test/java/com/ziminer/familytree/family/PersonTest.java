@@ -2,6 +2,9 @@ package com.ziminer.familytree.family;
 
 import org.junit.Before;
 import org.junit.Test;
+import com.ziminer.familytree.family.Person;
+
+import java.util.List;
 
 import static org.junit.Assert.*;
 
@@ -67,5 +70,24 @@ public class PersonTest {
         } catch (DoubleParentException e) {
             // We're good.
         }
+    }
+
+    @Test
+    public void testGetCousins() throws ExistingOppositeGenderException, DoubleParentException, DoubleSpouseException {
+        Person me = factory.createMale("Me");
+        Person dad = factory.createMale("Dad");
+        Person grandfather = factory.createMale("Grandfather");
+        Person aunt = factory.createFemale("Aunt");
+        Person cousin = factory.createMale("Cousin");
+
+        me.addParent(dad);
+        dad.addParent(grandfather);
+        aunt.addParent(grandfather);
+        cousin.addParent(aunt);
+
+        List<Person> cousins = me.getRelatives("Cousin");
+        assertEquals(cousins.size(), 1);
+        assertEquals(cousins.get(0).getName(), "Cousin");
+
     }
 }
